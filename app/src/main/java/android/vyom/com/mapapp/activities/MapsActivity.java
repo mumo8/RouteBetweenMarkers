@@ -1,4 +1,4 @@
-package android.vyom.com.mapapp;
+package android.vyom.com.mapapp.activities;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -11,12 +11,15 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.vyom.com.mapapp.R;
+import android.vyom.com.mapapp.model.DistanceMatrixModel;
+import android.vyom.com.mapapp.network.ApiService;
+import android.vyom.com.mapapp.network.RetrofitInstance;
+import android.widget.TextView;
 
 import com.ahmadrosid.lib.drawroutemap.DrawRouteMaps;
 import com.google.android.gms.common.ConnectionResult;
@@ -38,11 +41,16 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
     public static final int REQUEST_CODE = 007;
     public static final double DEST_LAT = 38.788544;
     public static final double DEST_LNG = -90.493681;
+    public static final String API_KEY = "AIzaSyDydgW8PC0QyuFr7UEnk3_MjGh5yyIHb1Y";
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest locationRequest;
@@ -52,6 +60,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Location currentLocation;
     private static final String TAG = "MapsActivity";
     private SupportMapFragment mapFragment;
+    private ApiService apiService;
+    private TextView tvDistance, tvTime;
+    // url: https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=41.587753,-87.935380&destinations=41.618560,-87.590684&key=AIzaSyDydgW8PC0QyuFr7UEnk3_MjGh5yyIHb1Y
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @SuppressLint("RestrictedApi")
@@ -62,6 +73,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
+        tvDistance = findViewById(R.id.tvDistance);
+        tvTime = findViewById(R.id.tvTime);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -75,9 +88,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         fusedLocationProviderApi = LocationServices.FusedLocationApi;
 
         locationRequest = new LocationRequest();
-        locationRequest.setInterval(1000);
-        locationRequest.setFastestInterval(1000);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(4000);
         locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+
+        apiService = RetrofitInstance.getInstance().create(ApiService.class);
 
     }
 
@@ -162,13 +177,31 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(final int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode==REQUEST_CODE){
             if(resultCode == RESULT_OK){
                 Place place = PlacePicker.getPlace(this,data);
                 destLat = place.getLatLng().latitude;
                 destLng = place.getLatLng().longitude;
+
+                apiService.getElements("imperial",myLat+","+myLng,destLat+","+destLng, API_KEY)
+                        .enqueue(new Callback<DistanceMatrixModel>() {
+                    @Override
+                    public void onResponse(Call<DistanceMatrixModel> call, Response<DistanceMatrixModel> response) {
+                        Log.i(TAG, "onResponse: "+response.body().getRows().get(0).getElements().get(0).getDistance().getText());
+                        if(response.isSuccessful()){
+                            tvDistance.setText("Distance: "+response.body().getRows().get(0).getElements().get(0).getDistance().getText());
+                            tvTime.setText("Time: "+response.body().getRows().get(0).getElements().get(0).getDuration().getText());
+                        }
+
+                    }
+
+                    @Override
+                    public void onFailure(Call<DistanceMatrixModel> call, Throwable t) {
+
+                    }
+                });
             }
         }
     }
