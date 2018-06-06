@@ -64,7 +64,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ApiService apiService;
     private TextView tvDistance, tvTime;
     private LinearLayout dataContainer;
-    // url: https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=41.587753,-87.935380&destinations=41.618560,-87.590684&key=AIzaSyDydgW8PC0QyuFr7UEnk3_MjGh5yyIHb1Y
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @SuppressLint("RestrictedApi")
@@ -99,26 +98,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
         LatLng currentLocation = new LatLng(myLat, myLng);
-//        if(destLat==null || destLng==null){
-//            destLat = DEST_LAT;
-//            destLng = DEST_LNG;
-//        }
 
         mMap.addMarker(new MarkerOptions().position(currentLocation).title("Your Location"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
