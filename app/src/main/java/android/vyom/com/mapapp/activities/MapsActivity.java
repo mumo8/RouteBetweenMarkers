@@ -19,6 +19,7 @@ import android.vyom.com.mapapp.R;
 import android.vyom.com.mapapp.model.DistanceMatrixModel;
 import android.vyom.com.mapapp.network.ApiService;
 import android.vyom.com.mapapp.network.RetrofitInstance;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.ahmadrosid.lib.drawroutemap.DrawRouteMaps;
@@ -62,6 +63,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private SupportMapFragment mapFragment;
     private ApiService apiService;
     private TextView tvDistance, tvTime;
+    private LinearLayout dataContainer;
     // url: https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=41.587753,-87.935380&destinations=41.618560,-87.590684&key=AIzaSyDydgW8PC0QyuFr7UEnk3_MjGh5yyIHb1Y
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -75,6 +77,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         tvDistance = findViewById(R.id.tvDistance);
         tvTime = findViewById(R.id.tvTime);
+        dataContainer = findViewById(R.id.dataContainer);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -191,6 +194,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void onResponse(Call<DistanceMatrixModel> call, Response<DistanceMatrixModel> response) {
                         Log.i(TAG, "onResponse: "+response.body().getRows().get(0).getElements().get(0).getDistance().getText());
                         if(response.isSuccessful()){
+                            dataContainer.setVisibility(View.VISIBLE);
                             tvDistance.setText("Distance: "+response.body().getRows().get(0).getElements().get(0).getDistance().getText());
                             tvTime.setText("Time: "+response.body().getRows().get(0).getElements().get(0).getDuration().getText());
                         }
