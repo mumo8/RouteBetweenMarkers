@@ -2,6 +2,7 @@ package android.vyom.com.mapapp;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.location.Location;
@@ -15,13 +16,19 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 
 import com.ahmadrosid.lib.drawroutemap.DrawRouteMaps;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderApi;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.maps.GoogleMap;
@@ -33,11 +40,15 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
+    public static final int REQUEST_CODE = 007;
+    public static final double DEST_LAT = 38.788544;
+    public static final double DEST_LNG = -90.493681;
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest locationRequest;
     private FusedLocationProviderApi fusedLocationProviderApi;
     private Double myLat, myLng;
+    private Double destLat, destLng;
     private Location currentLocation;
     private static final String TAG = "MapsActivity";
     private SupportMapFragment mapFragment;
@@ -56,6 +67,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
+                .addApi(Places.GEO_DATA_API)
+                .addApi(Places.PLACE_DETECTION_API)
                 .build();
         mGoogleApiClient.connect();
 
@@ -84,20 +97,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Add a marker in Sydney and move the camera
         LatLng currentLocation = new LatLng(myLat, myLng);
-        LatLng destination = new LatLng(38.788544,-90.493681);
-        LatLngBounds bounds = new LatLngBounds.Builder()
-                .include(currentLocation)
-                .include(destination).build();
+//        if(destLat==null || destLng==null){
+//            destLat = DEST_LAT;
+//            destLng = DEST_LNG;
+//        }
 
-        DrawRouteMaps.getInstance(this)
-                .draw(currentLocation, destination, mMap);
         mMap.addMarker(new MarkerOptions().position(currentLocation).title("Your Location"));
-        mMap.addMarker(new MarkerOptions().position(destination).title("Destination"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLocation,6));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLocation,15));
+
+        if(destLat!=null && destLng!=null) {
+
+            LatLng destination = new LatLng(destLat, destLng);
+            LatLngBounds bounds = new LatLngBounds.Builder()
+                    .include(currentLocation)
+                    .include(destination).build();
+            DrawRouteMaps.getInstance(this)
+                    .draw(currentLocation, destination, mMap);
+            mMap.addMarker(new MarkerOptions().position(destination).title("Destination"));
+        }
 
         Point displaySize = new Point();
         getWindowManager().getDefaultDisplay().getSize(displaySize);
+
 
     }
 
@@ -139,5 +161,26 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==REQUEST_CODE){
+            if(resultCode == RESULT_OK){
+                Place place = PlacePicker.getPlace(this,data);
+                destLat = place.getLatLng().latitude;
+                destLng = place.getLatLng().longitude;
+            }
+        }
+    }
 
+    public void startPlacePicker(View view) {
+        PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
+        try {
+            startActivityForResult(builder.build(MapsActivity.this), REQUEST_CODE);
+        } catch (GooglePlayServicesRepairableException e) {
+            e.printStackTrace();
+        } catch (GooglePlayServicesNotAvailableException e) {
+            e.printStackTrace();
+        }
+    }
 }
